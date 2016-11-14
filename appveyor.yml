@@ -4,11 +4,11 @@ version: 0.1.{build}
 environment:
     matrix:
         - VSVER: vs2010
-          VSTOOLS: %VS100COMNTOOLS%
+          VSTOOLS: '%VS100COMNTOOLS%'
         - VSVER: vs2013
-          VSTOOLS: %VS120COMNTOOLS%
+          VSTOOLS: '%VS120COMNTOOLS%'
         - VSVER: vs2015
-          VSTOOLS: %VS140COMNTOOLS%
+          VSTOOLS: '%VS140COMNTOOLS%'
 
 install:
 - cmd: call %VSTOOLS%\vsvars32.bat
