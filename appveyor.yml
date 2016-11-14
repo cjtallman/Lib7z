@@ -1,0 +1,25 @@
+
+version: 0.1.{build}
+
+environment:
+    matrix:
+        - VSVER: vs2010
+          VSTOOLS: %VS100COMNTOOLS%
+        - VSVER: vs2013
+          VSTOOLS: %VS120COMNTOOLS%
+        - VSVER: vs2015
+          VSTOOLS: %VS140COMNTOOLS%
+
+install:
+- cmd: call %VSTOOLS%\vsvars32.bat
+
+build_script:
+- cmd: tools\premake5 %VSVER%
+- cmd: pushd _build
+- cmd: msbuild /p:Configuration=Release Lib7z.sln
+- cmd: popd
+
+test_script:
+- cmd: pushd _output\test
+- cmd: test_list_contents.exe
+- cmd: popd
