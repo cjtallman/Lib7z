@@ -15,11 +15,9 @@ install:
 
 build_script:
 - cmd: tools\premake5 %VSVER%
-- cmd: pushd _build
-- cmd: msbuild /p:Configuration=Release Lib7z.sln
-- cmd: popd
+- cmd: msbuild /p:Configuration=Release _build\Lib7z.sln
 
 test_script:
-- cmd: pushd _output\test
+- cmd: chdir "%APPVEYOR_BUILD_FOLDER%\_output\test"
 - cmd: test_list_contents.exe
-- cmd: popd
+- cmd: chdir "%APPVEYOR_BUILD_FOLDER%"

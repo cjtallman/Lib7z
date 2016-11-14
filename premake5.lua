@@ -13,7 +13,11 @@ solution("Lib7z")
         flags{"Optimize"}
     filter{"configurations:Debug"}
         defines{"DEBUG"}
-        flags{"Symbols"}
+        if type(symbols) == "function" then
+            symbols("On")    -- premake 5 alpha 10
+        else
+            flags{"Symbols"} -- premake 5 alpha 9
+        end
     filter{}
 
     project("Lib7z")
