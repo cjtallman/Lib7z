@@ -33,50 +33,50 @@
 
 #include "Archive/IArchive.h"
 
-#include "IPassword.h"
 #include "../../C/7zVersion.h"
+#include "IPassword.h"
 
 HINSTANCE g_hInstance = 0;
 
-DEFINE_GUID(CLSID_CFormat7z, 0x23170F69, 0x40C1, 0x278A, 0x10, 0x00, 0x00, 0x01, 0x10, 0x07, 0x00, 0x00);
+DEFINE_GUID(CLSID_CFormat7z, 0x23170F69, 0x40C1, 0x278A, 0x10, 0x00, 0x00, 0x01, 0x10, 0x07, 0x00,
+            0x00);
 #define CLSID_Format CLSID_CFormat7z
 
-static FString CmdStringToFString(const char *s)
+static FString CmdStringToFString(const char* s)
 {
-  return us2fs(GetUnicodeString(s));
+    return us2fs(GetUnicodeString(s));
 }
 
-class CArchiveOpenCallback
-    : public IArchiveOpenCallback
-    , public ICryptoGetTextPassword
-    , public CMyUnknownImp
+class CArchiveOpenCallback : public IArchiveOpenCallback,
+                             public ICryptoGetTextPassword,
+                             public CMyUnknownImp
 {
 public:
     MY_UNKNOWN_IMP1(ICryptoGetTextPassword)
 
-    STDMETHOD(SetTotal)(const UInt64 * files, const UInt64 * bytes);
-    STDMETHOD(SetCompleted)(const UInt64 * files, const UInt64 * bytes);
-    STDMETHOD(CryptoGetTextPassword)(BSTR * password);
+    STDMETHOD(SetTotal)(const UInt64* files, const UInt64* bytes);
+    STDMETHOD(SetCompleted)(const UInt64* files, const UInt64* bytes);
+    STDMETHOD(CryptoGetTextPassword)(BSTR* password);
 
-    bool PasswordIsDefined;
+    bool    PasswordIsDefined;
     UString Password;
 
     CArchiveOpenCallback() : PasswordIsDefined(false) {}
 };
 
-STDMETHODIMP CArchiveOpenCallback::SetTotal(const UInt64 * , const UInt64 *)
+STDMETHODIMP CArchiveOpenCallback::SetTotal(const UInt64*, const UInt64*)
 {
     return S_OK;
 }
 
-STDMETHODIMP CArchiveOpenCallback::SetCompleted(const UInt64 *, const UInt64 *)
+STDMETHODIMP CArchiveOpenCallback::SetCompleted(const UInt64*, const UInt64*)
 {
     return S_OK;
 }
 
-STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR * password)
+STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR* password)
 {
-    if(!PasswordIsDefined)
+    if (!PasswordIsDefined)
     {
         return E_ABORT;
     }
@@ -86,53 +86,60 @@ STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR * password)
 
 struct Lib7z::impl
 {
-    impl()
-        : _createObjectFunc(NULL)
+    impl() : _createObjectFunc(NULL)
     {
         _lib.Load(NWindows::NDLL::GetModuleDirPrefix() + FTEXT("7z.dll"));
-        if(_lib.IsLoaded())
+        if (_lib.IsLoaded())
         {
             _createObjectFunc = (Func_CreateObject)_lib.GetProc("CreateObject");
         }
+        else
+        {
+            _lib.Load(FTEXT("7z.dll"));
+            if (_lib.IsLoaded())
+            {
+                _createObjectFunc = (Func_CreateObject)_lib.GetProc("CreateObject");
+            }
+        }
     }
 
-    CMyComPtr<IInArchive> getArchive(const string & in_archive, const string & password)
+    CMyComPtr<IInArchive> getArchive(const string& in_archive, const string& password)
     {
         CMyComPtr<IInArchive> archive;
 
-        if(!_createObjectFunc)
+        if (!_createObjectFunc)
         {
             return NULL;
         }
 
-        if(_createObjectFunc(&CLSID_Format, &IID_IInArchive, (void **)&archive) != S_OK)
+        if (_createObjectFunc(&CLSID_Format, &IID_IInArchive, (void**)&archive) != S_OK)
         {
             return NULL;
         }
 
-        CInFileStream * fileSpec = new CInFileStream;
-        CMyComPtr<IInStream> file = fileSpec;
+        CInFileStream*       fileSpec = new CInFileStream;
+        CMyComPtr<IInStream> file     = fileSpec;
 
-        if(!fileSpec->Open(CmdStringToFString(in_archive.c_str())))
+        if (!fileSpec->Open(CmdStringToFString(in_archive.c_str())))
         {
             return NULL;
         }
 
-        CArchiveOpenCallback * openCallbackSpec = new CArchiveOpenCallback;
+        CArchiveOpenCallback*           openCallbackSpec = new CArchiveOpenCallback;
         CMyComPtr<IArchiveOpenCallback> openCallback(openCallbackSpec);
-        if(!password.empty())
+        if (!password.empty())
         {
             openCallbackSpec->PasswordIsDefined = true;
-            openCallbackSpec->Password = CmdStringToFString(password.c_str());
+            openCallbackSpec->Password          = CmdStringToFString(password.c_str());
         }
         else
         {
             openCallbackSpec->PasswordIsDefined = false;
-            openCallbackSpec->Password = L"";
+            openCallbackSpec->Password          = L"";
         }
 
         const UInt64 scanSize = 1 << 23;
-        if(archive->Open(file, &scanSize, openCallback) != S_OK)
+        if (archive->Open(file, &scanSize, openCallback) != S_OK)
         {
             return NULL;
         }
@@ -141,11 +148,10 @@ struct Lib7z::impl
     }
 
     NWindows::NDLL::CLibrary _lib;
-    Func_CreateObject _createObjectFunc;
+    Func_CreateObject        _createObjectFunc;
 };
 
-Lib7z::Lib7z()
-    : _pimpl(new impl)
+Lib7z::Lib7z() : _pimpl(new impl)
 {
 }
 
@@ -154,10 +160,10 @@ Lib7z::~Lib7z()
     delete _pimpl;
 }
 
-int Lib7z::getFileNames(stringlist & out_names, const string & in_archive) const
+int Lib7z::getFileNames(stringlist& out_names, const string& in_archive) const
 {
     CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, _password);
-    if(archive)
+    if (archive)
     {
         // List command
         UInt32 numItems = 0;
@@ -166,15 +172,15 @@ int Lib7z::getFileNames(stringlist & out_names, const string & in_archive) const
         {
             NWindows::NCOM::CPropVariant propIsDir;
             archive->GetProperty(i, kpidIsDir, &propIsDir);
-            if(propIsDir.vt == VT_BOOL)
+            if (propIsDir.vt == VT_BOOL)
             {
-                if(!propIsDir.boolVal )
+                if (!propIsDir.boolVal)
                 {
                     // Get name of file
                     NWindows::NCOM::CPropVariant prop;
                     archive->GetProperty(i, kpidPath, &prop);
 
-                    if(prop.vt == VT_BSTR && prop.bstrVal)
+                    if (prop.vt == VT_BSTR && prop.bstrVal)
                     {
                         AString s = UnicodeStringToMultiByte(prop.bstrVal, CP_OEMCP);
                         s.Replace((char)0xA, ' ');
@@ -190,7 +196,7 @@ int Lib7z::getFileNames(stringlist & out_names, const string & in_archive) const
         return 0;
 }
 
-int Lib7z::setPassword(const string & password)
+int Lib7z::setPassword(const string& password)
 {
     _password = password;
     return 0;

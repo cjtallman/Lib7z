@@ -1,18 +1,24 @@
 
+newoption{trigger = "build_dir", description = "Project build directory."}
+newoption{trigger = "output_dir", description = "Project output directory."}
+
+_OPTIONS.build_dir = _OPTIONS.build_dir or "_build"
+_OPTIONS.output_dir = _OPTIONS.output_dir or "_output"
+
 solution("Lib7z")
-    location("build")
-    configurations{"Release"}
+    location(_OPTIONS.build_dir)
+    configurations{"Release","Debug"}
     filter{"configurations:Release"}
         defines{"NDEBUG"}
         flags{"Optimize"}
     filter{"configurations:Debug"}
-        flags{"Symbols"}
         defines{"DEBUG"}
+        flags{"Symbols"}
     filter{}
 
     project("Lib7z")
         kind("StaticLib")
-        targetdir("bin")
+        targetdir(_OPTIONS.output_dir)
         architecture("x86_64")
         includedirs{"lib/7zip/CPP/7zip"}
         files
@@ -35,12 +41,30 @@ solution("Lib7z")
             "lib/7zip/CPP/7zip/Common/FileStreams.cpp",
         }
 
---[[
-    project("My7z")
-        kind("ConsoleApp")
-        targetdir("bin")
-        links{"Lib7z"}
-        architecture("x86_64")
-        includedirs{"lib/7zip/CPP/7zip"}
-        files{"src/main.cpp"}
---]]
+for _,v in ipairs(os.matchdirs("./test/test_*")) do
+    local name = path.getbasename(v)
+    project(name)
+    kind("ConsoleApp")
+    location(path.join(_OPTIONS.build_dir, "test"))
+    targetdir(path.join(_OPTIONS.output_dir, "test"))
+    architecture("x86_64")
+    libdirs{_OPTIONS.output_dir}
+    links("Lib7z")
+    flags "NoIncrementalLink"
+    debugdir(path.join(path.join(_OPTIONS.output_dir, "test")))
+    includedirs
+    {
+        path.join("lib", "googletest"),
+        path.join("lib", "googletest", "include"),
+        "src",
+    }
+    files
+    {
+        path.join("lib", "googletest", "src", "gtest-all.cc"),
+        path.join(v, "main.cpp"),
+    }
+    postbuildcommands
+    {
+        [[{COPY} ../../test/*.7z %{cfg.buildtarget.directory}]]
+    }
+end
