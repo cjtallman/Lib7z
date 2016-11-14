@@ -1,3 +1,0 @@
-[submodule "lib/7zip"]
-	path = lib/7zip
-	url = git@github.com:CoolOppo/7-Zip.git
