@@ -84,6 +84,28 @@ STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR* password)
     return StringToBstr(Password, password);
 }
 
+struct Lib7z::Archive
+{
+private:
+    CMyComPtr<IInArchive> _archive;
+
+public:
+    // constructor
+    Archive(CMyComPtr<IInArchive>& ar) : _archive(ar) {}
+
+    // valid operator
+    operator bool() const { return _archive != NULL; }
+
+    // conversion operator
+    operator CMyComPtr<IInArchive>() const { return _archive; }
+
+    // dot operator
+    const CMyComPtr<IInArchive>& operator*() const { return _archive; }
+
+    // arrow operator
+    CMyComPtr<IInArchive> operator->() const { return _archive; }
+};
+
 struct Lib7z::impl
 {
     impl() : _createObjectFunc(NULL)
@@ -160,25 +182,24 @@ Lib7z::~Lib7z()
     delete _pimpl;
 }
 
-int Lib7z::getFileNames(stringlist& out_names, const char* in_archive, const char* password) const
+int Lib7z::getFileNames(stringlist& out_names, const ArchivePtr& archive) const
 {
-    CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, password);
     if (archive)
     {
         // List command
         UInt32 numItems = 0;
-        archive->GetNumberOfItems(&numItems);
+        (*archive)->GetNumberOfItems(&numItems);
         for (UInt32 i = 0; i < numItems; i++)
         {
             NWindows::NCOM::CPropVariant propIsDir;
-            archive->GetProperty(i, kpidIsDir, &propIsDir);
+            (*archive)->GetProperty(i, kpidIsDir, &propIsDir);
             if (propIsDir.vt == VT_BOOL)
             {
                 if (!propIsDir.boolVal)
                 {
                     // Get name of file
                     NWindows::NCOM::CPropVariant prop;
-                    archive->GetProperty(i, kpidPath, &prop);
+                    (*archive)->GetProperty(i, kpidPath, &prop);
 
                     if (prop.vt == VT_BSTR && prop.bstrVal)
                     {
@@ -194,4 +215,74 @@ int Lib7z::getFileNames(stringlist& out_names, const char* in_archive, const cha
     }
     else
         return 0;
+}
+
+Lib7z::ArchivePtr Lib7z::getArchive(const char* in_archive, const char* password) const
+{
+    CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, password);
+
+    if (archive)
+    {
+        return ArchivePtr(new Archive(archive));
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+Lib7z::ulonglong Lib7z::getUncompressedSize(const ArchivePtr& archive, const int id) const
+{
+    if (archive)
+    {
+        NWindows::NCOM::CPropVariant prop;
+        (*archive)->GetProperty(id, kpidSize, &prop);
+
+        switch (prop.vt)
+        {
+        default:
+        case VT_EMPTY:
+            return 0;
+        case VT_UI1:
+            return prop.bVal;
+        case VT_UI2:
+            return prop.uiVal;
+        case VT_UI4:
+            return prop.ulVal;
+        case VT_UI8:
+            return (UInt64)prop.uhVal.QuadPart;
+        }
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+Lib7z::ulonglong Lib7z::getCompressedSize(const ArchivePtr& archive, const int id) const
+{
+    if (archive)
+    {
+        NWindows::NCOM::CPropVariant prop;
+        (*archive)->GetProperty(id, kpidPackSize, &prop);
+
+        switch (prop.vt)
+        {
+        default:
+        case VT_EMPTY:
+            return 0;
+        case VT_UI1:
+            return prop.bVal;
+        case VT_UI2:
+            return prop.uiVal;
+        case VT_UI4:
+            return prop.ulVal;
+        case VT_UI8:
+            return (UInt64)prop.uhVal.QuadPart;
+        }
+    }
+    else
+    {
+        return 0;
+    }
 }

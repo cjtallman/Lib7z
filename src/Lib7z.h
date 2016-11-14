@@ -16,24 +16,32 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 class Lib7z
 {
+    struct Archive;
+
 public:
-    typedef std::string string;
-    typedef unsigned char byte;
-    typedef std::vector<string> stringlist;
-    typedef std::vector<byte> bytelist;
+    typedef std::string              string;
+    typedef unsigned char            byte;
+    typedef std::vector<string>      stringlist;
+    typedef std::vector<byte>        bytelist;
+    typedef std::shared_ptr<Archive> ArchivePtr;
+    typedef unsigned long long       ulonglong;
 
     Lib7z();
     ~Lib7z();
 
-    int getFileNames(stringlist & filenames, const char * archive, const char * password = 0) const;
-    int getFileData(bytelist & data, const char * archive, const string & filename, const char * password = 0) const;
+    ArchivePtr getArchive(const char* archive_path, const char* password = 0) const;
+    int getFileNames(stringlist& out_names, const ArchivePtr& archive) const;
+    int getFileData(bytelist& data, const ArchivePtr& archive, const int id) const;
+    Lib7z::ulonglong getUncompressedSize(const ArchivePtr& archive, const int id) const;
+    Lib7z::ulonglong getCompressedSize(const ArchivePtr& archive, const int id) const;
 
 private:
     struct impl;
-    impl * _pimpl;
+    impl* _pimpl;
 };
 
 #endif // Lib7z_h__
