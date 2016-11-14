@@ -13,9 +13,7 @@ TEST(TestFiles, Password)
 {
     Lib7z lib;
     Lib7z::stringlist names;
-    lib.setPassword("Celery");
-
-    EXPECT_EQ(1, lib.getFileNames(names, "one_file_password.7z"));
+    EXPECT_EQ(1, lib.getFileNames(names, "one_file_password.7z", "Celery"));
 }
 
 int main(int argc, char ** argv)

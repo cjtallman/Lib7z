@@ -103,7 +103,7 @@ struct Lib7z::impl
         }
     }
 
-    CMyComPtr<IInArchive> getArchive(const string& in_archive, const string& password)
+    CMyComPtr<IInArchive> getArchive(const char* in_archive, const char* password)
     {
         CMyComPtr<IInArchive> archive;
 
@@ -120,17 +120,17 @@ struct Lib7z::impl
         CInFileStream*       fileSpec = new CInFileStream;
         CMyComPtr<IInStream> file     = fileSpec;
 
-        if (!fileSpec->Open(CmdStringToFString(in_archive.c_str())))
+        if (!fileSpec->Open(CmdStringToFString(in_archive)))
         {
             return NULL;
         }
 
         CArchiveOpenCallback*           openCallbackSpec = new CArchiveOpenCallback;
         CMyComPtr<IArchiveOpenCallback> openCallback(openCallbackSpec);
-        if (!password.empty())
+        if (password)
         {
             openCallbackSpec->PasswordIsDefined = true;
-            openCallbackSpec->Password          = CmdStringToFString(password.c_str());
+            openCallbackSpec->Password          = CmdStringToFString(password);
         }
         else
         {
@@ -160,9 +160,9 @@ Lib7z::~Lib7z()
     delete _pimpl;
 }
 
-int Lib7z::getFileNames(stringlist& out_names, const string& in_archive) const
+int Lib7z::getFileNames(stringlist& out_names, const char* in_archive, const char* password) const
 {
-    CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, _password);
+    CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, password);
     if (archive)
     {
         // List command
@@ -194,10 +194,4 @@ int Lib7z::getFileNames(stringlist& out_names, const string& in_archive) const
     }
     else
         return 0;
-}
-
-int Lib7z::setPassword(const string& password)
-{
-    _password = password;
-    return 0;
 }

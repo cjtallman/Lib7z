@@ -28,14 +28,12 @@ public:
     Lib7z();
     ~Lib7z();
 
-    int getFileNames(stringlist & filenames, const string & archive) const;
-    int getFileData(bytelist & data, const string & archive, const string & filename) const;
-    int setPassword(const string & password);
+    int getFileNames(stringlist & filenames, const char * archive, const char * password = 0) const;
+    int getFileData(bytelist & data, const char * archive, const string & filename, const char * password = 0) const;
 
 private:
     struct impl;
     impl * _pimpl;
-    string _password;
 };
 
 #endif // Lib7z_h__
