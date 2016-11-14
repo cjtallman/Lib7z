@@ -11,7 +11,7 @@ environment:
           VSTOOLS: '%VS140COMNTOOLS%'
 
 install:
-- cmd: call %VSTOOLS%\vsvars32.bat
+- cmd: call "%VSTOOLS%\vsvars32.bat"
 
 build_script:
 - cmd: tools\premake5 %VSVER%
