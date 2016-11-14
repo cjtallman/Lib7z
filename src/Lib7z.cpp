@@ -182,6 +182,11 @@ Lib7z::~Lib7z()
     delete _pimpl;
 }
 
+bool Lib7z::libraryValid() const
+{
+    return (_pimpl != NULL) && (_pimpl->_createObjectFunc != NULL);
+}
+
 int Lib7z::getFileNames(stringlist& out_names, const ArchivePtr& archive) const
 {
     if (archive)

@@ -33,6 +33,8 @@ public:
     Lib7z();
     ~Lib7z();
 
+    bool libraryValid() const;
+
     ArchivePtr getArchive(const char* archive_path, const char* password = 0) const;
     int getFileNames(stringlist& out_names, const ArchivePtr& archive) const;
     int getFileData(bytelist& data, const ArchivePtr& archive, const int id) const;
