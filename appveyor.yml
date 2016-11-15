@@ -3,8 +3,6 @@ version: 0.1.{build}
 
 environment:
     matrix:
-        - VSVER: vs2010
-          VSTOOLS: '%VS100COMNTOOLS%..\\..\\VC'
         - VSVER: vs2013
           VSTOOLS: '%VS120COMNTOOLS%..\\..\\VC'
         - VSVER: vs2015
