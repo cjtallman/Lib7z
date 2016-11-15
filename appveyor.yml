@@ -4,14 +4,14 @@ version: 0.1.{build}
 environment:
     matrix:
         - VSVER: vs2010
-          VSTOOLS: '%VS100COMNTOOLS%'
+          VSTOOLS: '%VS100COMNTOOLS%/../../VC'
         - VSVER: vs2013
-          VSTOOLS: '%VS120COMNTOOLS%'
+          VSTOOLS: '%VS120COMNTOOLS%/../../VC'
         - VSVER: vs2015
-          VSTOOLS: '%VS140COMNTOOLS%'
+          VSTOOLS: '%VS140COMNTOOLS%/../../VC'
 
 install:
-- cmd: call "%VSTOOLS%\vsvars32.bat"
+- cmd: call "%VSTOOLS%\vcvarsall.bat x64"
 
 build_script:
 - cmd: tools\premake5 %VSVER%
