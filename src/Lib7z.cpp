@@ -11,7 +11,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Lib7z.h"
+#include "StdAfx.h"
 
 #include "../Common/MyWindows.h"
 
@@ -37,7 +37,11 @@
 #include "../../C/7zVersion.h"
 #include "IPassword.h"
 
-HINSTANCE g_hInstance = 0;
+#include "Lib7z.h"
+
+#if _WIN32
+HINSTANCE g_hInstance = NULL;
+#endif
 
 DEFINE_GUID(CLSID_CFormat7z, 0x23170F69, 0x40C1, 0x278A, 0x10, 0x00, 0x00, 0x01, 0x10, 0x07, 0x00,
             0x00);
@@ -86,22 +90,34 @@ public:
     CArchiveOpenCallback(const char* password = NULL) : _password(password ? password : "") {}
 
     // IArchiveOpenCallback
-    STDOVERRIDEMETHODIMP SetTotal(const UInt64* files, const UInt64* bytes) { return S_OK; }
-    STDOVERRIDEMETHODIMP SetCompleted(const UInt64* files, const UInt64* bytes) { return S_OK; }
+    STDMETHOD(SetTotal)(const UInt64* files, const UInt64* bytes);
+    STDMETHOD(SetCompleted)(const UInt64* files, const UInt64* bytes);
 
     // ICryptoGetTextPassword
-    STDOVERRIDEMETHODIMP CryptoGetTextPassword(BSTR* password)
-    {
-        if (_password.empty())
-        {
-            return E_ABORT;
-        }
-        return StringToBstr(CmdStringToFString(_password.c_str()), password);
-    }
+    STDMETHOD(CryptoGetTextPassword)(BSTR* password);
 
 private:
     const std::string _password;
 };
+
+STDMETHODIMP CArchiveOpenCallback::SetTotal(const UInt64* files, const UInt64* bytes)
+{
+    return S_OK;
+}
+
+STDMETHODIMP CArchiveOpenCallback::SetCompleted(const UInt64* files, const UInt64* bytes)
+{
+    return S_OK;
+}
+
+STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR* password)
+{
+    if (_password.empty())
+    {
+        return E_ABORT;
+    }
+    return StringToBstr(CmdStringToFString(_password.c_str()), password);
+}
 
 class CArchiveExtractCallback : public IArchiveExtractCallback,
                                 public ICryptoGetTextPassword,
@@ -114,23 +130,15 @@ public:
 
     // IArchiveExtractCallback
     STDMETHOD(GetStream)(UInt32 index, ISequentialOutStream** outStream, Int32 askExtractMode);
-    STDOVERRIDEMETHODIMP PrepareOperation(Int32 askExtractMode) { return S_OK; }
-    STDOVERRIDEMETHODIMP SetOperationResult(Int32 resultEOperationResult) { return S_OK; }
+    STDMETHOD(PrepareOperation)(Int32 askExtractMode);
+    STDMETHOD(SetOperationResult)(Int32 resultEOperationResult);
 
     // IProgress
-    STDOVERRIDEMETHODIMP SetTotal(UInt64 total) { return S_OK; }
-    STDOVERRIDEMETHODIMP SetCompleted(const UInt64* completeValue) { return S_OK; }
+    STDMETHOD(SetTotal)(UInt64 total);
+    STDMETHOD(SetCompleted)(const UInt64* completeValue);
 
     // ICryptoGetTextPassword
-    STDOVERRIDEMETHODIMP CryptoGetTextPassword(BSTR* password)
-    {
-        const std::string& pwd = _archive->Password();
-        if (pwd.empty())
-        {
-            return E_ABORT;
-        }
-        return StringToBstr(CmdStringToFString(pwd.c_str()), password);
-    }
+    STDMETHOD(CryptoGetTextPassword)(BSTR* password);
 
     const CByteBuffer& GetBuffer() const { return _dataStream; }
 
@@ -166,6 +174,36 @@ STDMETHODIMP CArchiveExtractCallback::GetStream(UInt32 index, ISequentialOutStre
     *outStream     = outStreamLoc.Detach();
 
     return S_OK;
+}
+
+STDMETHODIMP CArchiveExtractCallback::PrepareOperation(Int32 askExtractMode)
+{
+    return S_OK;
+}
+
+STDMETHODIMP CArchiveExtractCallback::SetOperationResult(Int32 resultEOperationResult)
+{
+    return S_OK;
+}
+
+STDMETHODIMP CArchiveExtractCallback::SetTotal(UInt64 total)
+{
+    return S_OK;
+}
+
+STDMETHODIMP CArchiveExtractCallback::SetCompleted(const UInt64* completeValue)
+{
+    return S_OK;
+}
+
+STDMETHODIMP CArchiveExtractCallback::CryptoGetTextPassword(BSTR* password)
+{
+    const std::string& pwd = _archive->Password();
+    if (pwd.empty())
+    {
+        return E_ABORT;
+    }
+    return StringToBstr(CmdStringToFString(pwd.c_str()), password);
 }
 
 class Lib7z::impl
