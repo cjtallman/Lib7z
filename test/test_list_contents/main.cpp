@@ -51,6 +51,16 @@ TEST(TestFiles, CompressedSize)
     EXPECT_EQ(609269, lib.getCompressedSize(loaded, 0));
 }
 
+TEST(TestFiles, GetData)
+{
+    Lib7z             lib;
+    Lib7z::ArchivePtr loaded = lib.getArchive("one_text_file.7z");
+    EXPECT_TRUE(loaded);
+
+    Lib7z::bytelist data;
+    EXPECT_EQ(2447699, lib.getFileData(data, loaded, 0));
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);

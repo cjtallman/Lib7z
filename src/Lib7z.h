@@ -37,12 +37,12 @@ public:
 
     ArchivePtr getArchive(const char* archive_path, const char* password = 0) const;
     int getFileNames(stringlist& out_names, const ArchivePtr& archive) const;
-    int getFileData(bytelist& data, const ArchivePtr& archive, const int id) const;
-    Lib7z::ulonglong getUncompressedSize(const ArchivePtr& archive, const int id) const;
-    Lib7z::ulonglong getCompressedSize(const ArchivePtr& archive, const int id) const;
+    static int getFileData(bytelist& data, const ArchivePtr& archive, const int id);
+    static Lib7z::ulonglong getUncompressedSize(const ArchivePtr& archive, const int id);
+    static Lib7z::ulonglong getCompressedSize(const ArchivePtr& archive, const int id);
 
 private:
-    struct impl;
+    class impl;
     impl* _pimpl;
 };
 

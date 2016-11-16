@@ -28,6 +28,7 @@ solution("Lib7z")
         files
         {
             "src/Lib7z.*",
+            "lib/7zip/C/Alloc.c",
             "lib/7zip/CPP/Common/IntToString.cpp",
             "lib/7zip/CPP/Common/NewHandler.cpp",
             "lib/7zip/CPP/Common/MyString.cpp",
@@ -43,6 +44,7 @@ solution("Lib7z")
             "lib/7zip/CPP/Windows/PropVariant.cpp",
             "lib/7zip/CPP/Windows/PropVariantConv.cpp",
             "lib/7zip/CPP/7zip/Common/FileStreams.cpp",
+            "lib/7zip/CPP/7zip/Common/StreamObjects.cpp",
         }
 
 for _,v in ipairs(os.matchdirs("./test/test_*")) do

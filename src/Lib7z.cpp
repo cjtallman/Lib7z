@@ -30,6 +30,7 @@
 #include "../Windows/PropVariantConv.h"
 
 #include "Common/FileStreams.h"
+#include "Common/StreamObjects.h"
 
 #include "Archive/IArchive.h"
 
@@ -47,51 +48,18 @@ static FString CmdStringToFString(const char* s)
     return us2fs(GetUnicodeString(s));
 }
 
-class CArchiveOpenCallback : public IArchiveOpenCallback,
-                             public ICryptoGetTextPassword,
-                             public CMyUnknownImp
-{
-public:
-    MY_UNKNOWN_IMP1(ICryptoGetTextPassword)
-
-    STDMETHOD(SetTotal)(const UInt64* files, const UInt64* bytes);
-    STDMETHOD(SetCompleted)(const UInt64* files, const UInt64* bytes);
-    STDMETHOD(CryptoGetTextPassword)(BSTR* password);
-
-    bool    PasswordIsDefined;
-    UString Password;
-
-    CArchiveOpenCallback() : PasswordIsDefined(false) {}
-};
-
-STDMETHODIMP CArchiveOpenCallback::SetTotal(const UInt64*, const UInt64*)
-{
-    return S_OK;
-}
-
-STDMETHODIMP CArchiveOpenCallback::SetCompleted(const UInt64*, const UInt64*)
-{
-    return S_OK;
-}
-
-STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR* password)
-{
-    if (!PasswordIsDefined)
-    {
-        return E_ABORT;
-    }
-
-    return StringToBstr(Password, password);
-}
-
 struct Lib7z::Archive
 {
 private:
     CMyComPtr<IInArchive> _archive;
+    string                _password;
 
 public:
     // constructor
-    Archive(CMyComPtr<IInArchive>& ar) : _archive(ar) {}
+    Archive(CMyComPtr<IInArchive>& ar, const char* password = NULL)
+        : _archive(ar), _password(password ? password : "")
+    {
+    }
 
     // valid operator
     operator bool() const { return _archive != NULL; }
@@ -104,10 +72,105 @@ public:
 
     // arrow operator
     CMyComPtr<IInArchive> operator->() const { return _archive; }
+
+    const std::string& Password() const { return _password; }
 };
 
-struct Lib7z::impl
+class CArchiveOpenCallback : public IArchiveOpenCallback,
+                             public ICryptoGetTextPassword,
+                             public CMyUnknownImp
 {
+public:
+    MY_UNKNOWN_IMP1(ICryptoGetTextPassword)
+
+    CArchiveOpenCallback(const char* password = NULL) : _password(password ? password : "") {}
+
+    // IArchiveOpenCallback
+    STDOVERRIDEMETHODIMP SetTotal(const UInt64* files, const UInt64* bytes) { return S_OK; }
+    STDOVERRIDEMETHODIMP SetCompleted(const UInt64* files, const UInt64* bytes) { return S_OK; }
+
+    // ICryptoGetTextPassword
+    STDOVERRIDEMETHODIMP CryptoGetTextPassword(BSTR* password)
+    {
+        if (_password.empty())
+        {
+            return E_ABORT;
+        }
+        return StringToBstr(CmdStringToFString(_password.c_str()), password);
+    }
+
+private:
+    const std::string _password;
+};
+
+class CArchiveExtractCallback : public IArchiveExtractCallback,
+                                public ICryptoGetTextPassword,
+                                public CMyUnknownImp
+{
+public:
+    MY_UNKNOWN_IMP1(ICryptoGetTextPassword)
+
+    CArchiveExtractCallback(const Lib7z::ArchivePtr& archive) : _archive(archive) {}
+
+    // IArchiveExtractCallback
+    STDMETHOD(GetStream)(UInt32 index, ISequentialOutStream** outStream, Int32 askExtractMode);
+    STDOVERRIDEMETHODIMP PrepareOperation(Int32 askExtractMode) { return S_OK; }
+    STDOVERRIDEMETHODIMP SetOperationResult(Int32 resultEOperationResult) { return S_OK; }
+
+    // IProgress
+    STDOVERRIDEMETHODIMP SetTotal(UInt64 total) { return S_OK; }
+    STDOVERRIDEMETHODIMP SetCompleted(const UInt64* completeValue) { return S_OK; }
+
+    // ICryptoGetTextPassword
+    STDOVERRIDEMETHODIMP CryptoGetTextPassword(BSTR* password)
+    {
+        const std::string& pwd = _archive->Password();
+        if (pwd.empty())
+        {
+            return E_ABORT;
+        }
+        return StringToBstr(CmdStringToFString(pwd.c_str()), password);
+    }
+
+    const CByteBuffer& GetBuffer() const { return _dataStream; }
+
+private:
+    const Lib7z::ArchivePtr&        _archive;
+    CMyComPtr<ISequentialOutStream> _outFileStream;
+    CByteBuffer                     _dataStream;
+};
+
+STDMETHODIMP CArchiveExtractCallback::GetStream(UInt32 index, ISequentialOutStream** outStream,
+                                                Int32 askExtractMode)
+{
+    *outStream = 0;
+    _outFileStream.Release();
+
+    // Sanity check
+    if (askExtractMode != NArchive::NExtract::NAskMode::kExtract)
+        return S_OK;
+
+    // Create output stream
+    CBufPtrSeqOutStream*            stream_spec = new CBufPtrSeqOutStream;
+    CMyComPtr<ISequentialOutStream> outStreamLoc(stream_spec);
+
+    // Get required size and allocate buffer
+    const Lib7z::ulonglong file_size = Lib7z::getUncompressedSize(_archive, index);
+    _dataStream.Alloc(file_size);
+
+    // Use buffer for stream
+    stream_spec->Init(_dataStream, file_size);
+
+    // Return buffer
+    _outFileStream = outStreamLoc;
+    *outStream     = outStreamLoc.Detach();
+
+    return S_OK;
+}
+
+class Lib7z::impl
+{
+public:
     impl() : _createObjectFunc(NULL)
     {
         _lib.Load(NWindows::NDLL::GetModuleDirPrefix() + FTEXT("7z.dll"));
@@ -147,18 +210,8 @@ struct Lib7z::impl
             return NULL;
         }
 
-        CArchiveOpenCallback*           openCallbackSpec = new CArchiveOpenCallback;
+        CArchiveOpenCallback*           openCallbackSpec = new CArchiveOpenCallback(password);
         CMyComPtr<IArchiveOpenCallback> openCallback(openCallbackSpec);
-        if (password)
-        {
-            openCallbackSpec->PasswordIsDefined = true;
-            openCallbackSpec->Password          = CmdStringToFString(password);
-        }
-        else
-        {
-            openCallbackSpec->PasswordIsDefined = false;
-            openCallbackSpec->Password          = L"";
-        }
 
         const UInt64 scanSize = 1 << 23;
         if (archive->Open(file, &scanSize, openCallback) != S_OK)
@@ -169,6 +222,9 @@ struct Lib7z::impl
         return archive;
     }
 
+    bool isValid() const { return _createObjectFunc != NULL; }
+
+private:
     NWindows::NDLL::CLibrary _lib;
     Func_CreateObject        _createObjectFunc;
 };
@@ -184,7 +240,7 @@ Lib7z::~Lib7z()
 
 bool Lib7z::libraryValid() const
 {
-    return (_pimpl != NULL) && (_pimpl->_createObjectFunc != NULL);
+    return (_pimpl && _pimpl->isValid());
 }
 
 int Lib7z::getFileNames(stringlist& out_names, const ArchivePtr& archive) const
@@ -222,13 +278,37 @@ int Lib7z::getFileNames(stringlist& out_names, const ArchivePtr& archive) const
         return 0;
 }
 
+int Lib7z::getFileData(bytelist& data, const ArchivePtr& archive, const int id)
+{
+    data.clear();
+
+    // Extract command
+    CArchiveExtractCallback*           extractCallbackSpec = new CArchiveExtractCallback(archive);
+    CMyComPtr<IArchiveExtractCallback> extractCallback(extractCallbackSpec);
+
+    const UInt32 index  = id;
+    HRESULT      result = (*archive)->Extract(&index, 1, false, extractCallback);
+
+    if (result != S_OK)
+    {
+        return 0;
+    }
+    else
+    {
+        const CByteBuffer& buffer = extractCallbackSpec->GetBuffer();
+        data.resize(buffer.Size());
+        memcpy(&data.front(), buffer, buffer.Size());
+        return (int)data.size();
+    }
+}
+
 Lib7z::ArchivePtr Lib7z::getArchive(const char* in_archive, const char* password) const
 {
     CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, password);
 
     if (archive)
     {
-        return ArchivePtr(new Archive(archive));
+        return ArchivePtr(new Archive(archive, password));
     }
     else
     {
@@ -236,7 +316,7 @@ Lib7z::ArchivePtr Lib7z::getArchive(const char* in_archive, const char* password
     }
 }
 
-Lib7z::ulonglong Lib7z::getUncompressedSize(const ArchivePtr& archive, const int id) const
+Lib7z::ulonglong Lib7z::getUncompressedSize(const ArchivePtr& archive, const int id)
 {
     if (archive)
     {
@@ -264,7 +344,7 @@ Lib7z::ulonglong Lib7z::getUncompressedSize(const ArchivePtr& archive, const int
     }
 }
 
-Lib7z::ulonglong Lib7z::getCompressedSize(const ArchivePtr& archive, const int id) const
+Lib7z::ulonglong Lib7z::getCompressedSize(const ArchivePtr& archive, const int id)
 {
     if (archive)
     {
