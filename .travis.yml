@@ -1,0 +1,13 @@
+language: cpp
+
+before_install:
+    - sudo apt-get -qq update
+    - sudo apt-get install -y p7zip-full
+
+install:
+    - tools/premake5 gmake
+    - make -C _build
+
+script:
+    - chdir _output/test
+    - ./test_list_contents

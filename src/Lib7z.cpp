@@ -12,15 +12,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
-
 #include "../Common/MyWindows.h"
-
 #include "../Common/Defs.h"
 #include "../Common/MyInitGuid.h"
-
 #include "../Common/IntToString.h"
 #include "../Common/StringConvert.h"
-
 #include "../Windows/DLL.h"
 #include "../Windows/FileDir.h"
 #include "../Windows/FileFind.h"
@@ -28,15 +24,11 @@
 #include "../Windows/NtCheck.h"
 #include "../Windows/PropVariant.h"
 #include "../Windows/PropVariantConv.h"
-
+#include "../../C/7zVersion.h"
 #include "Common/FileStreams.h"
 #include "Common/StreamObjects.h"
-
 #include "Archive/IArchive.h"
-
-#include "../../C/7zVersion.h"
 #include "IPassword.h"
-
 #include "Lib7z.h"
 
 #if _WIN32
@@ -46,6 +38,8 @@ HINSTANCE g_hInstance = NULL;
 DEFINE_GUID(CLSID_CFormat7z, 0x23170F69, 0x40C1, 0x278A, 0x10, 0x00, 0x00, 0x01, 0x10, 0x07, 0x00,
             0x00);
 #define CLSID_Format CLSID_CFormat7z
+
+static const FString DllName = FTEXT("7z.dll");
 
 static FString CmdStringToFString(const char* s)
 {
@@ -211,26 +205,35 @@ class Lib7z::impl
 public:
     impl() : _createObjectFunc(NULL)
     {
-        _lib.Load(NWindows::NDLL::GetModuleDirPrefix() + FTEXT("7z.dll"));
-        if (_lib.IsLoaded())
+        // Local dll in current executable directory.
+        const FString local_dll = NWindows::NDLL::GetModuleDirPrefix() + (DllName);
+#ifdef _WIN32
+        // Let windows find the DLL, probably in "C:\Program Files\7zip\".
+        const FString system_dll = (DllName); 
+#else
+        // Expected install path from "apt-get install p7zip-full"
+        const FString system_dll = FTEXT("/usr/lib/p7zip/") + (DllName);
+#endif
+        // Check for local dll first.
+        if (NWindows::NFile::NFind::DoesFileExist(local_dll) && _lib.Load(local_dll) &&
+            _lib.IsLoaded())
         {
             _createObjectFunc = (Func_CreateObject)_lib.GetProc("CreateObject");
         }
-        else
+        // Fall back to system/installed dll.
+        else if (_lib.Load(system_dll) && _lib.IsLoaded())
         {
-            _lib.Load(FTEXT("7z.dll"));
-            if (_lib.IsLoaded())
-            {
-                _createObjectFunc = (Func_CreateObject)_lib.GetProc("CreateObject");
-            }
+            _createObjectFunc = (Func_CreateObject)_lib.GetProc("CreateObject");
         }
     }
+
+    ~impl() { _lib.Free(); }
 
     CMyComPtr<IInArchive> getArchive(const char* in_archive, const char* password)
     {
         CMyComPtr<IInArchive> archive;
 
-        if (!_createObjectFunc)
+        if (!isValid())
         {
             return NULL;
         }

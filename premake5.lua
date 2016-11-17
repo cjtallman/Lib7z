@@ -20,13 +20,12 @@ solution("Lib7z")
         end
     filter{}
         flags{"C++11"}
+        architecture("x86_64")
 
     project("Lib7z")
         kind("StaticLib")
         targetdir(_OPTIONS.output_dir)
-        architecture("x86_64")
         language("C++")
-        flags{"C++11"}
         filter{"system:windows"}
             includedirs
             {
@@ -77,26 +76,26 @@ solution("Lib7z")
             files
             {
                 "src/Lib7z.*",
-                "lib/p7zip/C/Alloc.c",
-                "lib/p7zip/C/Threads.c",
-                "lib/p7zip/CPP/Common/IntToString.cpp",
-                "lib/p7zip/CPP/Common/NewHandler.cpp",
-                "lib/p7zip/CPP/Common/MyString.cpp",
-                "lib/p7zip/CPP/Common/MyVector.cpp",
-                "lib/p7zip/CPP/Common/MyWindows.cpp",
-                "lib/p7zip/CPP/Common/Wildcard.cpp",
-                "lib/p7zip/CPP/Common/StringConvert.cpp",
-                "lib/p7zip/CPP/Common/StringToInt.cpp",
-                "lib/p7zip/CPP/Windows/DLL.cpp",
-                "lib/p7zip/CPP/Windows/FileDir.cpp",
-                "lib/p7zip/CPP/Windows/FileFind.cpp",
-                "lib/p7zip/CPP/Windows/FileIO.cpp",
-                "lib/p7zip/CPP/Windows/FileName.cpp",
-                "lib/p7zip/CPP/Windows/PropVariant.cpp",
-                "lib/p7zip/CPP/Windows/PropVariantConv.cpp",
-                "lib/p7zip/CPP/myWindows/wine_date_and_time.cpp",
-                "lib/p7zip/CPP/7zip/Common/FileStreams.cpp",
-                "lib/p7zip/CPP/7zip/Common/StreamObjects.cpp",
+                "lib/p7zip/C/Alloc.*",
+                "lib/p7zip/C/Threads.*",
+                "lib/p7zip/CPP/Common/IntToString.*",
+                "lib/p7zip/CPP/Common/NewHandler.*",
+                "lib/p7zip/CPP/Common/MyString.*",
+                "lib/p7zip/CPP/Common/MyVector.*",
+                "lib/p7zip/CPP/Common/MyWindows.*",
+                "lib/p7zip/CPP/Common/Wildcard.*",
+                "lib/p7zip/CPP/Common/StringConvert.*",
+                "lib/p7zip/CPP/Common/StringToInt.*",
+                "lib/p7zip/CPP/Windows/DLL.*",
+                "lib/p7zip/CPP/Windows/FileDir.*",
+                "lib/p7zip/CPP/Windows/FileFind.*",
+                "lib/p7zip/CPP/Windows/FileIO.*",
+                "lib/p7zip/CPP/Windows/FileName.*",
+                "lib/p7zip/CPP/Windows/PropVariant.*",
+                "lib/p7zip/CPP/Windows/PropVariantConv.*",
+                "lib/p7zip/CPP/myWindows/wine_date_and_time.*",
+                "lib/p7zip/CPP/7zip/Common/FileStreams.*",
+                "lib/p7zip/CPP/7zip/Common/StreamObjects.*",
             }
         filter{}
 
@@ -106,13 +105,11 @@ for _,v in ipairs(os.matchdirs("./test/test_*")) do
     kind("ConsoleApp")
     location(path.join(_OPTIONS.build_dir, "test"))
     targetdir(path.join(_OPTIONS.output_dir, "test"))
-    architecture("x86_64")
     libdirs{_OPTIONS.output_dir}
     links{"Lib7z"}
     filter{"system:linux"}
         links{"dl", "pthread"}
     filter{}
-    flags "NoIncrementalLink"
     debugdir(path.join(path.join(_OPTIONS.output_dir, "test")))
     includedirs
     {
