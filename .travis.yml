@@ -15,5 +15,5 @@ install:
     - make -C _build
 
 script:
-    - chdir _output/test
+    - cd _output/test
     - ./test_list_contents
