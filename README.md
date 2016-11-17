@@ -2,6 +2,8 @@
 
 [![AppVeyor branch](https://img.shields.io/appveyor/ci/cjtallman/Lib7z/master.svg)](https://ci.appveyor.com/project/cjtallman/Lib7z/branch/master)
 
+[![Travis branch](https://img.shields.io/travis/cjtallman/Lib7z/master.svg)](https://travis-ci.org/cjtallman/Lib7z)
+
 A lightweight wrapper for 7Zip written in C++.
 
 The library contains functions for opening and extracting data to memory.
