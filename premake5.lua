@@ -28,16 +28,15 @@ solution("Lib7z")
 
     project("Lib7z")
         kind("StaticLib")
-        targetdir(_OPTIONS.output_dir)
         language("C++")
         filter{"configurations:Debug", "architecture:x86"}
-            targetsuffix("32d")
+            targetdir(path.join(_OPTIONS.output_dir, "debug_x86"))
         filter{"configurations:Release", "architecture:x86"}
-            targetsuffix("32")
+            targetdir(path.join(_OPTIONS.output_dir, "release_x86"))
         filter{"configurations:Debug", "architecture:x86_64"}
-            targetsuffix("64d")
+            targetdir(path.join(_OPTIONS.output_dir, "debug_x86_64"))
         filter{"configurations:Release", "architecture:x86_64"}
-            targetsuffix("64")
+            targetdir(path.join(_OPTIONS.output_dir, "release_x86_64"))
         filter{"system:windows"}
             includedirs
             {
