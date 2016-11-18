@@ -18,19 +18,19 @@ TEST(TestFiles, MissingArchive)
 TEST(TestFiles, ExactlyTwo)
 {
     Lib7z             lib;
-    Lib7z::stringlist names;
+    Lib7z::EntryList names;
     Lib7z::ArchivePtr loaded = lib.getArchive("two_text_files.7z", Lib7z::T7z);
     ASSERT_TRUE(loaded);
-    EXPECT_EQ(2, lib.getFileNames(names, loaded));
+    EXPECT_EQ(2, lib.getContents(names, loaded));
 }
 
 TEST(TestFiles, Password)
 {
     Lib7z             lib;
-    Lib7z::stringlist names;
+    Lib7z::EntryList names;
     Lib7z::ArchivePtr loaded = lib.getArchive("one_file_password.7z", Lib7z::T7z, "Celery");
     ASSERT_TRUE(loaded);
-    EXPECT_EQ(1, lib.getFileNames(names, loaded));
+    EXPECT_EQ(1, lib.getContents(names, loaded));
 }
 
 TEST(TestFiles, UncompressedSize)

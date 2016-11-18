@@ -8,6 +8,7 @@ _OPTIONS.output_dir = _OPTIONS.output_dir or "_output"
 solution("Lib7z")
     location(_OPTIONS.build_dir)
     configurations{"Release","Debug"}
+    platforms{"x86", "x86_64"}
     filter{"configurations:Release"}
         defines{"NDEBUG"}
         flags{"Optimize"}
@@ -18,14 +19,25 @@ solution("Lib7z")
         else
             flags{"Symbols"} -- premake 5 alpha 9
         end
+    filter{"platforms:x86"}
+        architecture("x86")
+    filter{"platforms:x86_64"}
+        architecture("x86_64")
     filter{}
         flags{"C++11"}
-        architecture("x86_64")
 
     project("Lib7z")
         kind("StaticLib")
         targetdir(_OPTIONS.output_dir)
         language("C++")
+        filter{"configurations:Debug", "architecture:x86"}
+            targetsuffix("32d")
+        filter{"configurations:Release", "architecture:x86"}
+            targetsuffix("32")
+        filter{"configurations:Debug", "architecture:x86_64"}
+            targetsuffix("64d")
+        filter{"configurations:Release", "architecture:x86_64"}
+            targetsuffix("64")
         filter{"system:windows"}
             includedirs
             {

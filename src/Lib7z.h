@@ -81,23 +81,34 @@ public:
         TGZip     = 0xEF,
     };
 
+    struct Entry
+    {
+        enum Type {IsFile, IsDir};
+
+        int _index;
+        std::string _name;
+        Type _type;
+    };
+
     typedef std::string              string;
     typedef unsigned char            byte;
+    typedef unsigned __int64         uint64;
     typedef std::vector<string>      stringlist;
     typedef std::vector<byte>        bytelist;
+    typedef std::vector<Entry>       EntryList;
     typedef std::shared_ptr<Archive> ArchivePtr;
-    typedef unsigned long long       ulonglong;
-
+   
     Lib7z();
     ~Lib7z();
 
     bool       libraryValid() const;
     ArchivePtr getArchive(const char* archive_path, const ARType& artype,
                           const char* password = 0) const;
-    int getFileNames(stringlist& out_names, const ArchivePtr& archive) const;
-    static int getFileData(bytelist& data, const ArchivePtr& archive, const int id);
-    static Lib7z::ulonglong getUncompressedSize(const ArchivePtr& archive, const int id);
-    static Lib7z::ulonglong getCompressedSize(const ArchivePtr& archive, const int id);
+    static size_t getContents(EntryList& entries, const ArchivePtr& archive);
+    static size_t getFileData(bytelist& data, const ArchivePtr& archive, const int id);
+    static uint64 getUncompressedSize(const ArchivePtr& archive, const int id);
+    static uint64 getCompressedSize(const ArchivePtr& archive, const int id);
+    static time_t getModificationTime(const ArchivePtr&archive, const int id);
 
 private:
     impl* _pimpl;

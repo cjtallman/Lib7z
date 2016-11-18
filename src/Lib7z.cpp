@@ -15,6 +15,7 @@
 #include "../Common/MyWindows.h"
 #include "../Common/Defs.h"
 #include "../Common/MyInitGuid.h"
+
 #include "../Common/IntToString.h"
 #include "../Common/StringConvert.h"
 #include "../Windows/DLL.h"
@@ -37,10 +38,11 @@ HINSTANCE g_hInstance = NULL;
 
 const GUID GetCLSID(const Lib7z::ARType& type)
 {
-    return GUID{0x23170F69,
-                0x40C1,
-                0x278A,
-                {0x10, 0x00, 0x00, 0x01, 0x10, (unsigned char)(type), 0x00, 0x00}};
+    const GUID guid = {0x23170F69,
+                       0x40C1,
+                       0x278A,
+                       {0x10, 0x00, 0x00, 0x01, 0x10, (unsigned char)(type), 0x00, 0x00}};
+    return guid;
 }
 
 static const FString DllName = FTEXT("7z.dll");
@@ -161,7 +163,7 @@ STDMETHODIMP CArchiveExtractCallback::GetStream(UInt32 index, ISequentialOutStre
     CMyComPtr<ISequentialOutStream> outStreamLoc(stream_spec);
 
     // Get required size and allocate buffer
-    const Lib7z::ulonglong file_size = Lib7z::getUncompressedSize(_archive, index);
+    const size_t file_size = (size_t)Lib7z::getUncompressedSize(_archive, index);
     _dataStream.Alloc(file_size);
 
     // Use buffer for stream
@@ -290,7 +292,7 @@ bool Lib7z::libraryValid() const
     return (_pimpl && _pimpl->isValid());
 }
 
-int Lib7z::getFileNames(stringlist& out_names, const ArchivePtr& archive) const
+size_t Lib7z::getContents(Lib7z::EntryList& entries, const ArchivePtr& archive)
 {
     if (archive)
     {
@@ -300,32 +302,33 @@ int Lib7z::getFileNames(stringlist& out_names, const ArchivePtr& archive) const
         for (UInt32 i = 0; i < numItems; i++)
         {
             NWindows::NCOM::CPropVariant propIsDir;
+            NWindows::NCOM::CPropVariant propPath;
             (*archive)->GetProperty(i, kpidIsDir, &propIsDir);
-            if (propIsDir.vt == VT_BOOL)
-            {
-                if (!propIsDir.boolVal)
-                {
-                    // Get name of file
-                    NWindows::NCOM::CPropVariant prop;
-                    (*archive)->GetProperty(i, kpidPath, &prop);
+            (*archive)->GetProperty(i, kpidPath, &propPath);
 
-                    if (prop.vt == VT_BSTR && prop.bstrVal)
-                    {
-                        AString s = UnicodeStringToMultiByte(prop.bstrVal, CP_OEMCP);
-                        s.Replace((char)0xA, ' ');
-                        s.Replace((char)0xD, ' ');
-                        out_names.push_back(s.Ptr());
-                    }
-                }
+            Entry entry;
+            entry._index = i;
+            entry._type =
+                (propIsDir.vt == VT_BOOL && propIsDir.boolVal) ? Entry::IsDir : Entry::IsFile;
+
+            // Get name of file
+            if (propPath.vt == VT_BSTR && propPath.bstrVal)
+            {
+                AString s = UnicodeStringToMultiByte(propPath.bstrVal, CP_OEMCP);
+                s.Replace((char)0xA, ' ');
+                s.Replace((char)0xD, ' ');
+                entry._name = s.Ptr();
             }
+
+            entries.push_back(entry);
         }
-        return (int)out_names.size();
+        return (size_t)entries.size();
     }
     else
         return 0;
 }
 
-int Lib7z::getFileData(bytelist& data, const ArchivePtr& archive, const int id)
+size_t Lib7z::getFileData(bytelist& data, const ArchivePtr& archive, const int id)
 {
     data.clear();
 
@@ -345,7 +348,7 @@ int Lib7z::getFileData(bytelist& data, const ArchivePtr& archive, const int id)
         const CByteBuffer& buffer = extractCallbackSpec->GetBuffer();
         data.resize(buffer.Size());
         memcpy(&data.front(), buffer, buffer.Size());
-        return (int)data.size();
+        return (size_t)data.size();
     }
 }
 
@@ -364,7 +367,7 @@ Lib7z::ArchivePtr Lib7z::getArchive(const char* in_archive, const Lib7z::ARType&
     }
 }
 
-Lib7z::ulonglong Lib7z::getUncompressedSize(const ArchivePtr& archive, const int id)
+Lib7z::uint64 Lib7z::getUncompressedSize(const ArchivePtr& archive, const int id)
 {
     if (archive)
     {
@@ -392,7 +395,7 @@ Lib7z::ulonglong Lib7z::getUncompressedSize(const ArchivePtr& archive, const int
     }
 }
 
-Lib7z::ulonglong Lib7z::getCompressedSize(const ArchivePtr& archive, const int id)
+Lib7z::uint64 Lib7z::getCompressedSize(const ArchivePtr& archive, const int id)
 {
     if (archive)
     {
@@ -413,6 +416,23 @@ Lib7z::ulonglong Lib7z::getCompressedSize(const ArchivePtr& archive, const int i
         case VT_UI8:
             return (UInt64)prop.uhVal.QuadPart;
         }
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+time_t Lib7z::getModificationTime(const ArchivePtr& archive, const int id)
+{
+    if (archive)
+    {
+        NWindows::NCOM::CPropVariant prop;
+        if ((*archive)->GetProperty(id, kpidMTime, &prop) != S_OK)
+            return 0;
+
+        const FILETIME ft = prop.filetime;
+        return (time_t)ft.dwLowDateTime | ((time_t)ft.dwHighDateTime << 32);
     }
     else
     {
