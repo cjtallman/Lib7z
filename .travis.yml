@@ -5,8 +5,8 @@ env:
     global:
         - PREMAKEURL=https://github.com/premake/premake-core/releases/download/v5.0.0-alpha10/premake-5.0.0-alpha10-linux.tar.gz
     matrix:
-        - CONFIG=release_x86    ARCHSPEC=i386
         - CONFIG=release_x86_64 ARCHSPEC=amd64
+        #- CONFIG=release_x86    ARCHSPEC=i386
 
 install:
     - sudo apt-get update
