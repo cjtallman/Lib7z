@@ -37,7 +37,10 @@ HINSTANCE g_hInstance = NULL;
 
 const GUID GetCLSID(const Lib7z::ARType& type)
 {
-    return GUID{ 0x23170F69, 0x40C1, 0x278A, { 0x10, 0x00, 0x00, 0x01, 0x10, (unsigned char)(type), 0x00, 0x00 } };
+    return GUID{0x23170F69,
+                0x40C1,
+                0x278A,
+                {0x10, 0x00, 0x00, 0x01, 0x10, (unsigned char)(type), 0x00, 0x00}};
 }
 
 static const FString DllName = FTEXT("7z.dll");
@@ -230,7 +233,7 @@ public:
 
     ~impl() { _lib.Free(); }
 
-    CMyComPtr<IInArchive> getArchive(const char* in_archive, const ARType& artype,
+    CMyComPtr<IInArchive> getArchive(const char* in_archive, const Lib7z::ARType& artype,
                                      const char* password)
     {
         CMyComPtr<IInArchive> archive;
@@ -346,7 +349,7 @@ int Lib7z::getFileData(bytelist& data, const ArchivePtr& archive, const int id)
     }
 }
 
-Lib7z::ArchivePtr Lib7z::getArchive(const char* in_archive, const ARType& artype,
+Lib7z::ArchivePtr Lib7z::getArchive(const char* in_archive, const Lib7z::ARType& artype,
                                     const char* password) const
 {
     CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, artype, password);
