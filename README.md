@@ -15,7 +15,8 @@ The library contains functions for opening and extracting data to memory.
 Lib7z lib;
 
 // Open the archive.
-Lib7z::ArchivePtr foo_archive = lib.getArchive("foo.7z", "password");
+Lib7z::ArchivePtr foo_archive = lib.getArchive("foo.7z", Lib7z::T7z, "password");
+Lib7z::ArchivePtr bar_archive = lib.getArchive("bar.zip", Lib7z::TZip, "password");
 
 // Get file with index 0.
 Lib7z::bytelist foo_data;
