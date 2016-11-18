@@ -5,16 +5,14 @@ env:
     global:
         - PREMAKEURL=https://github.com/premake/premake-core/releases/download/v5.0.0-alpha10/premake-5.0.0-alpha10-linux.tar.gz
     matrix:
-        - CONFIG=release_x86 PREREQ=p7zip-full:i386
-        - CONFIG=release_x86_64 PREREQ=p7zip-full:amd64
-
-before_install:
-    - sudo apt-get -qq update
-    - sudo apt-get install -y $PREREQ gcc-multilib g++-multilib
-    - wget -O ./tools/premake5.tgz $PREMAKEURL
-    - tar -xz -f ./tools/premake5.tgz -C ./tools
+        - CONFIG=release_x86    ARCHSPEC=i386
+        - CONFIG=release_x86_64 ARCHSPEC=amd64
 
 install:
+    - sudo apt-get update
+    - sudo apt-get install -y p7zip-full:$ARCHSPEC gcc-multilib g++-multilib
+    - wget -O ./tools/premake5.tgz $PREMAKEURL
+    - tar -xz -f ./tools/premake5.tgz -C ./tools
     - tools/premake5 gmake
     - make -C _build config=$CONFIG
 
