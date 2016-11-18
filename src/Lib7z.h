@@ -18,6 +18,12 @@
 #include <string>
 #include <memory>
 
+#if _WIN32
+#include <stdint.h>
+#else
+#include <inttypes.h>
+#endif
+
 class Lib7z
 {
     struct Archive;
@@ -83,21 +89,25 @@ public:
 
     struct Entry
     {
-        enum Type {IsFile, IsDir};
+        enum Type
+        {
+            IsFile,
+            IsDir
+        };
 
-        int _index;
+        int         _index;
         std::string _name;
-        Type _type;
+        Type        _type;
     };
 
     typedef std::string              string;
-    typedef unsigned char            byte;
-    typedef unsigned __int64         uint64;
+    typedef uint8_t                  byte;
+    typedef uint64_t                 uint64;
     typedef std::vector<string>      stringlist;
     typedef std::vector<byte>        bytelist;
     typedef std::vector<Entry>       EntryList;
     typedef std::shared_ptr<Archive> ArchivePtr;
-   
+
     Lib7z();
     ~Lib7z();
 
@@ -108,7 +118,7 @@ public:
     static size_t getFileData(bytelist& data, const ArchivePtr& archive, const int id);
     static uint64 getUncompressedSize(const ArchivePtr& archive, const int id);
     static uint64 getCompressedSize(const ArchivePtr& archive, const int id);
-    static time_t getModificationTime(const ArchivePtr&archive, const int id);
+    static uint64 getModificationTime(const ArchivePtr& archive, const int id);
 
 private:
     impl* _pimpl;

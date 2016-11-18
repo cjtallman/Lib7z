@@ -423,7 +423,7 @@ Lib7z::uint64 Lib7z::getCompressedSize(const ArchivePtr& archive, const int id)
     }
 }
 
-time_t Lib7z::getModificationTime(const ArchivePtr& archive, const int id)
+Lib7z::uint64 Lib7z::getModificationTime(const ArchivePtr& archive, const int id)
 {
     if (archive)
     {
@@ -432,7 +432,7 @@ time_t Lib7z::getModificationTime(const ArchivePtr& archive, const int id)
             return 0;
 
         const FILETIME ft = prop.filetime;
-        return (time_t)ft.dwLowDateTime | ((time_t)ft.dwHighDateTime << 32);
+        return (uint64)ft.dwLowDateTime | ((uint64)ft.dwHighDateTime << 32);
     }
     else
     {
