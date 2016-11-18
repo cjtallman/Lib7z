@@ -35,9 +35,10 @@
 HINSTANCE g_hInstance = NULL;
 #endif
 
-DEFINE_GUID(CLSID_CFormat7z, 0x23170F69, 0x40C1, 0x278A, 0x10, 0x00, 0x00, 0x01, 0x10, 0x07, 0x00,
-            0x00);
-#define CLSID_Format CLSID_CFormat7z
+const GUID GetCLSID(const Lib7z::ARType& type)
+{
+    return GUID{ 0x23170F69, 0x40C1, 0x278A, { 0x10, 0x00, 0x00, 0x01, 0x10, (unsigned char)(type), 0x00, 0x00 } };
+}
 
 static const FString DllName = FTEXT("7z.dll");
 
@@ -209,7 +210,7 @@ public:
         const FString local_dll = NWindows::NDLL::GetModuleDirPrefix() + (DllName);
 #ifdef _WIN32
         // Let windows find the DLL, probably in "C:\Program Files\7zip\".
-        const FString system_dll = (DllName); 
+        const FString system_dll = (DllName);
 #else
         // Expected install path from "apt-get install p7zip-full"
         const FString system_dll = FTEXT("/usr/lib/p7zip/") + (DllName);
@@ -229,7 +230,8 @@ public:
 
     ~impl() { _lib.Free(); }
 
-    CMyComPtr<IInArchive> getArchive(const char* in_archive, const char* password)
+    CMyComPtr<IInArchive> getArchive(const char* in_archive, const ARType& artype,
+                                     const char* password)
     {
         CMyComPtr<IInArchive> archive;
 
@@ -238,7 +240,8 @@ public:
             return NULL;
         }
 
-        if (_createObjectFunc(&CLSID_Format, &IID_IInArchive, (void**)&archive) != S_OK)
+        const GUID ar_type_guid = GetCLSID(artype);
+        if (_createObjectFunc(&ar_type_guid, &IID_IInArchive, (void**)&archive) != S_OK)
         {
             return NULL;
         }
@@ -343,9 +346,10 @@ int Lib7z::getFileData(bytelist& data, const ArchivePtr& archive, const int id)
     }
 }
 
-Lib7z::ArchivePtr Lib7z::getArchive(const char* in_archive, const char* password) const
+Lib7z::ArchivePtr Lib7z::getArchive(const char* in_archive, const ARType& artype,
+                                    const char* password) const
 {
-    CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, password);
+    CMyComPtr<IInArchive> archive = _pimpl->getArchive(in_archive, artype, password);
 
     if (archive)
     {

@@ -124,6 +124,7 @@ for _,v in ipairs(os.matchdirs("./test/test_*")) do
     }
     postbuildcommands
     {
-        [[{COPY} ../../test/*.7z %{cfg.buildtarget.directory}]]
+        [[{COPY} ../../test/*.7z %{cfg.buildtarget.directory}]],
+        [[{COPY} ../../test/*.zip %{cfg.buildtarget.directory}]],
     }
 end
